@@ -1,0 +1,7 @@
+my_env/
+
+vector_db_text2sqlharrypotter/
+
+__pycache__/
+
+.env
