@@ -7,7 +7,8 @@ services:
     ports:
       - "8501:8501"
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     env_file:
       - .env  # This loads the environment variables from the .env file
     networks:
@@ -15,7 +16,7 @@ services:
 
   mysql:
     image: mysql:5.7
-    container_name: mysql_db
+    container_name: mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}  # Refers to MYSQL_PASSWORD from .env
       MYSQL_DATABASE: ${MYSQL_DATABASE}      # Refers to MYSQL_DATABASE from .env
@@ -26,6 +27,12 @@ services:
       - mynetwork
     volumes:
       - mysql-data:/var/lib/mysql           # Persist MySQL data
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 networks:
   mynetwork:
