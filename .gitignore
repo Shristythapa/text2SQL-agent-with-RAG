@@ -5,3 +5,5 @@ vector_db_text2sqlharrypotter/
 __pycache__/
 
 .env
+
+retail_vector_db/

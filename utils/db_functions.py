@@ -7,7 +7,7 @@ from langchain_community.utilities import SQLDatabase
 
 # Load environment variables
 load_dotenv()
-openai_api_key = os.getenv("MISTRAL_API_KEY")
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 DB_URL = os.getenv("DB_URL")
 
 # Define SQL query execution tool

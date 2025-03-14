@@ -69,17 +69,18 @@ def humanize_output_prompt(question: str, query_result: str):
     return formatted_prompt 
 
 
-def determine_query_type( user_query: str):
-    prompt_templete = PromptTemplate(
+def determine_query_type(user_query: str):
+    prompt_template = PromptTemplate(
         input_variables=["user_query"],
         template="""
         You are a helpful assistant that determines the type of SQL query based on the user's natural language query. 
-        Given the user's query, determine whether it corresponds to an `INSERT`, `DELETE`, or `SELECT` operation. 
+        Given the user's query, determine whether it corresponds to an `INSERT`, `DELETE`, `UPDATE`, or `SELECT` operation. 
         Do not explain or provide extra information, only return the corresponding operation type.
         - If only a list of data is provided without an instruction, respond with: "I can't process this without a specific instruction."
         **Instructions:**
         - If the query requires adding data, return "INSERT".
         - If the query requires removing data, return "DELETE".
+        - If the query requires modifying existing data, return "UPDATE".
         - If the query requires retrieving data, return "SELECT".
 
         **Example Input and Output:**
@@ -90,16 +91,18 @@ def determine_query_type( user_query: str):
         Input: "remove user Mike"
         Output: "DELETE"
 
+        Input: "update user Mike's email to mike@example.com"
+        Output: "UPDATE"
+
         Input: "get all user emails"
         Output: "SELECT"
 
         Input: "{user_query}"
         Output:
         """
-
     )
-    
-    formatted_prompt = prompt_templete.format( user_query=user_query)
+
+    formatted_prompt = prompt_template.format( user_query=user_query)
     return formatted_prompt 
 
 def format_insert_prompt_for_sql_query(contexts: str, query: str, history: dict) -> str:
@@ -159,6 +162,41 @@ def format_delete_prompt_for_sql_query(contexts: str, query: str, history: dict)
         History: {history}
         SQL Query:
         """
+    )
+
+    formatted_prompt = prompt_template.format(query=query, contexts=contexts, history=history)
+    return formatted_prompt
+
+
+def format_update_prompt_for_sql_query(contexts: str, query: str, history: dict) -> str:
+    prompt_template = PromptTemplate(
+        input_variables=["query", "contexts", "history"],
+        template= 
+     """
+        You are a helpful assistant who creates SQL `UPDATE` queries for MySQL database based on the given schema description.
+        If the question cannot be answered using the provided information, say "I don't have that information."
+        Note that column and table names are written like this - `flim` in the context which should match in the query.
+        In case history is provided with an error, consider past mistakes to provide the correct answer.
+        Only update necessary columns, try to make it minimal.
+        - If only a list of data is provided without an instruction, respond with: "I can't process this without a specific instruction."
+        Ensure the output format strictly follows:
+        SQL Query: UPDATE ...
+
+        Examples:
+        User Query: "Update the title of the movie with id 1 to 'Updated Movie'."
+        SQL Query: UPDATE `film` SET `title` = 'Updated Movie' WHERE `id` = 1;
+
+        User Query: "Update the address of the store located in Kathmandu, update the postal code to '44600' and phone number to '9856000000'"
+        SQL Query: UPDATE `store` JOIN `address` ON `store`.`address_id` = `address`.`address_id` SET `address`.`postal_code` = '44600', `address`.`phone` = '9856000000' WHERE `address`.`city_id` = (SELECT `city_id` FROM `city` WHERE `city` = 'Kathmandu');
+
+        User Query: "Change the price of the product in store 5 to 19.99, and update the inventory's stock for film ID 30"
+        SQL Query: UPDATE `inventory` SET `rental_rate` = 19.99 WHERE `store_id` = 5 AND `film_id` = 30;
+
+        Schema: {contexts}
+        User Query: {query}
+        History: {history}
+        SQL Query:
+     """
     )
 
     formatted_prompt = prompt_template.format(query=query, contexts=contexts, history=history)

@@ -1,10 +1,20 @@
 import httpx
 from langchain_mistralai import ChatMistralAI
+import os
+from dotenv import load_dotenv
 
+
+load_dotenv()
+print(os.path.exists(".env"))  
+api_key = os.getenv("MISTRAL_API_KEY")
+
+print(f"Mistral api key {api_key}")
 llm = ChatMistralAI(
-    model="ministral-3b-latest",
+    model="pixtral-12b-2409",
     temperature=0,
     max_retries=2,
+    api_key= api_key,
+    timeout=30
 )
 
 def run_llm(formatted_prompt):

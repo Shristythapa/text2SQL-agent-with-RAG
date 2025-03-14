@@ -1,9 +1,9 @@
 from utils.context_retriver import retrieve_context
-from utils.prompts import format_prompt_for_sql_query, humanize_output_prompt,determine_query_type, format_insert_prompt_for_sql_query, format_delete_prompt_for_sql_query
+from utils.prompts import format_prompt_for_sql_query, humanize_output_prompt,determine_query_type, format_insert_prompt_for_sql_query, format_delete_prompt_for_sql_query, format_update_prompt_for_sql_query
 from utils.db_functions import execute_sql_query
 from utils.formtting import extract_sql_query
 from utils.running_lllm import run_llm
-
+import time
 import pandas as pd
 
 def run_pipeline(question):
@@ -15,24 +15,31 @@ def run_pipeline(question):
     context = retrieve_context(question)
 
     #run llm to determin what type of sql problem user has entred
-    query_type = run_llm(determine_query_type(question))
+    query_type = run_llm(determine_query_type(question)).strip("'\"")
+    time.sleep(10)
     print(f"determined query type: {query_type}.")
     
     #load different formated prompt according to the prompt type
+    #load different formated prompt according to the prompt type
     prompt = "" 
-    if query_type == '"INSERT"':
+    if 'INSERT' in query_type.upper():
         prompt = format_insert_prompt_for_sql_query(context,question,history)
         
-    elif query_type == '"DELETE"':
+    elif 'DELETE' in   query_type.upper():
         prompt = format_delete_prompt_for_sql_query(context,question,history)
         
     elif "can't process" in query_type:
         return query_type.strip("'\"")
+    
+    elif  'UPDATE' in query_type.upper():
+        
+        prompt = format_update_prompt_for_sql_query(context,question,history)
     else:
         prompt = format_prompt_for_sql_query(context, question, history)
         
     #run llm with specilized formatted prompt to get SQL query
     llm_output = run_llm(prompt)
+    time.sleep(10)
     
     #if error occurs when getting sql query
     if "Error" in llm_output:
@@ -77,6 +84,8 @@ def run_pipeline(question):
             return "Apologies, but I am currently unable to access the LLM due to rate limits being exceeded. Please try again later."
         
         
+        
+        
         #handling error cases returned when running query in db
         #this continues the loop cause here the problem might be solvable 
         elif isinstance(result, str) and result.startswith("Error:"): 
@@ -88,6 +97,7 @@ def run_pipeline(question):
             # Refine or regenerate the query by re-running the LLM
             prompt = format_prompt_for_sql_query(context, question, history)
             llm_output = run_llm(prompt)    
+            time.sleep(10)
             extracted_query = extract_sql_query(llm_output) #rerun the loop with new extracted query
         
         #break if no error was found - The Execution Was Successful    
@@ -102,7 +112,7 @@ def run_pipeline(question):
         output = {
           "SQL_queries" : SQL_queries,
           "db_output":  pd.DataFrame(),
-          "Summary": humanize_output_prompt(question,result)
+          "Summary": run_llm(humanize_output_prompt(question,result))
         }
         print(f"output result: {output}")
         return output
@@ -143,6 +153,6 @@ def run_pipeline(question):
     }
     
     print(f"the final output {output}")
-    return output
+    return output()
  
 # print(run_pipeline("Insert kathmandu of country nepal in city table."))
