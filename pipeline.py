@@ -153,6 +153,6 @@ def run_pipeline(question):
     }
     
     print(f"the final output {output}")
-    return output()
+    return output
  
 # print(run_pipeline("Insert kathmandu of country nepal in city table."))
